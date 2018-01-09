@@ -8,6 +8,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const mongo = require('mongodb').MongoClient
 const bunyan = require('bunyan')
+const moment = require('moment')
 const log = bunyan.createLogger({
   name: 'progresslogger',
   streams: [
@@ -33,6 +34,7 @@ app.use(bodyParser.json())
 
 let progress
 app.post('/', (request, response) => {
+  request.body.received = moment().toDate()
   progress.insert(request.body)
   log.info(request.body)
   response.status(200).send()
