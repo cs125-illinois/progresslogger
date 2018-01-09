@@ -13,7 +13,7 @@ const log = bunyan.createLogger({
   streams: [
     {
       type: 'rotating-file',
-      path: 'log/progresslogger.log',
+      path: 'logs/progresslogger.log',
       period: '1d',
       count: 365,
       level: 'info'
@@ -38,11 +38,9 @@ app.post('/', (request, response) => {
   response.status(200).send()
 })
 
-let database
 mongo.connect(process.env.MONGO)
   .then(client => {
-    database = client.db('MPs')
-    progress = database.collection('progress')
+    progress = client.db('MPs').collection('progress')
     app.listen(config.port)
   })
 
