@@ -4,7 +4,6 @@
   "author": "Geoffrey Challen <challen@illinois.edu>",
   "license": "MIT",
   "description": "MP progress data logger",
-  "preferGlobal": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/cs125-illinois/progresslogger.git"
