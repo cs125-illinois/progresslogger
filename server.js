@@ -2,7 +2,6 @@
 
 require('dotenv').config()
 const _ = require('lodash')
-const debug = require('debug')('progresslogger')
 
 const express = require('express')
 const bodyParser = require('body-parser')
@@ -22,12 +21,34 @@ const log = bunyan.createLogger({
   ]
 })
 
-const argv = require('minimist')(process.argv.slice(2))
+const jsYAML = require('js-yaml')
+const fs = require('fs')
 const defaults = {
   port: 8181
 }
-let config = _.extend(_.clone(defaults), argv)
-debug(config)
+const argv = require('minimist')(process.argv.slice(2))
+let config = _.extend(
+  defaults,
+  jsYAML.safeLoad(fs.readFileSync('config.yaml', 'utf8')),
+  argv
+)
+let PrettyStream = require('bunyan-prettystream')
+let prettyStream = new PrettyStream()
+prettyStream.pipe(process.stdout)
+if (config.debug) {
+  log.addStream({
+    type: 'raw',
+    stream: prettyStream,
+    level: "debug"
+  })
+} else {
+  log.addStream({
+    type: 'raw',
+    stream: prettyStream,
+    level: "warn"
+  })
+}
+log.debug(_.omit(config, 'secrets'))
 
 let app = express()
 app.use(bodyParser.json())
@@ -42,7 +63,7 @@ app.post('/', (request, response) => {
 
 mongo.connect(process.env.MONGO)
   .then(client => {
-    progress = client.db('MPs').collection('progress')
+    progress = client.db(config.db).collection('progress')
     app.listen(config.port)
   })
 
