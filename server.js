@@ -13,10 +13,17 @@ const log = bunyan.createLogger({
   streams: [
     {
       type: 'rotating-file',
-      path: 'logs/progresslogger.log',
+      path: 'logs/progresslogger-info.log',
       period: '1d',
       count: 365,
       level: 'info'
+    },
+    {
+      type: 'rotating-file',
+      path: 'logs/progresslogger-debug.log',
+      period: '1d',
+      count: 28,
+      level: 'debug'
     }
   ]
 })
@@ -56,7 +63,9 @@ app.use(bodyParser.json())
 let progress
 app.post('/', (request, response) => {
   request.body.received = moment().toDate()
-  progress.insert(request.body)
+  progress.insert(request.body).catch(err => {
+    log.fatal(err)
+  })
   log.info(request.body)
   response.status(200).send()
 })
