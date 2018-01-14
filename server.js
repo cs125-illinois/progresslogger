@@ -13,17 +13,10 @@ const log = bunyan.createLogger({
   streams: [
     {
       type: 'rotating-file',
-      path: 'logs/progresslogger-info.log',
+      path: 'logs/progresslogger.log',
       period: '1d',
       count: 365,
       level: 'info'
-    },
-    {
-      type: 'rotating-file',
-      path: 'logs/progresslogger-debug.log',
-      period: '1d',
-      count: 28,
-      level: 'debug'
     }
   ]
 })
@@ -55,7 +48,7 @@ if (config.debug) {
     level: "warn"
   })
 }
-log.debug(_.omit(config, 'secrets'))
+log.info(_.omit(config, 'secrets'))
 
 let app = express()
 app.use(bodyParser.json())
