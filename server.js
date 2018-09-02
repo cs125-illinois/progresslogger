@@ -7,7 +7,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const mongo = require('mongodb').MongoClient
 const bunyan = require('bunyan')
-const moment = require('moment')
+const moment = require('moment-timezone')
 const log = bunyan.createLogger({
   name: 'progresslogger',
   streams: [
@@ -48,7 +48,23 @@ if (config.debug) {
     level: "warn"
   })
 }
+
+const semesters = _.mapValues(config.semesters, semester => {
+  return {
+    start: moment.tz(new Date(semester.start), config.timezone),
+    end: moment.tz(new Date(semester.end), config.timezone)
+  }
+})
+
+function getCurrentSemester() {
+  const now = moment()
+  return _.findKey(semesters, ({ start, end }) => {
+    return now.isBetween(start, end, null, '[]')
+  })
+}
+
 log.info(_.omit(config, 'secrets'))
+log.info(`Current semester: ${ getCurrentSemester() }`)
 
 let app = express()
 app.use(bodyParser.json())
@@ -56,16 +72,20 @@ app.use(bodyParser.json())
 let progress
 app.post('/', (request, response) => {
   request.body.received = moment().toDate()
-  progress.insert(request.body).catch(err => {
+  let semester = getCurrentSemester()
+  if (semester) {
+    request.body.semester = semester
+  }
+  log.debug(request.body)
+  progress.insertOne(request.body).catch(err => {
     log.fatal(err)
   })
-  log.info(request.body)
   response.status(200).send()
 })
 
-mongo.connect(process.env.MONGO)
+mongo.connect(process.env.MONGO, { useNewUrlParser: true })
   .then(client => {
-    progress = client.db(config.db).collection('progress')
+    progress = client.db('cs125').collection('progress')
     app.listen(config.port)
   })
 
