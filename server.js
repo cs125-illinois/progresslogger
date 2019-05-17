@@ -60,7 +60,7 @@ app.post('/', (request, response) => {
   request.body.received = moment().toDate()
   let semester = getCurrentSemester()
   if (semester) {
-    request.body.semester = semester
+    request.body.receivedSemester = semester
   }
   log.info(request.body)
   progress.insertOne(request.body).catch(err => {
