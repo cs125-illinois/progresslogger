@@ -2,52 +2,38 @@
 
 require('dotenv').config()
 const _ = require('lodash')
-
-const express = require('express')
-const bodyParser = require('body-parser')
-const mongo = require('mongodb').MongoClient
-const bunyan = require('bunyan')
-const moment = require('moment-timezone')
-const log = bunyan.createLogger({
-  name: 'progresslogger',
-  streams: [
-    {
-      type: 'rotating-file',
-      path: 'logs/progresslogger.log',
-      period: '1d',
-      count: 365,
-      level: 'info'
-    }
-  ]
-})
-
-const jsYAML = require('js-yaml')
 const fs = require('fs')
-const defaults = {
-  port: 8181
-}
 const argv = require('minimist')(process.argv.slice(2))
-let config = _.extend(
-  defaults,
+const jsYAML = require('js-yaml')
+const config = _.extend(
+  { port: 8181 },
   jsYAML.safeLoad(fs.readFileSync('config.yaml', 'utf8')),
   argv
 )
-let PrettyStream = require('bunyan-prettystream')
-let prettyStream = new PrettyStream()
+
+const bunyan = require('bunyan')
+const PrettyStream = require('bunyan-prettystream')
+const prettyStream = new PrettyStream()
 prettyStream.pipe(process.stdout)
+const log = bunyan.createLogger({ name: 'progresslogger', streams: [] })
+
+log.addStream({
+  type: 'raw',
+  stream: prettyStream,
+  level: "info"
+})
 if (config.debug) {
   log.addStream({
     type: 'raw',
     stream: prettyStream,
     level: "debug"
   })
-} else {
-  log.addStream({
-    type: 'raw',
-    stream: prettyStream,
-    level: "warn"
-  })
 }
+
+const express = require('express')
+const bodyParser = require('body-parser')
+const mongo = require('mongodb').MongoClient
+const moment = require('moment-timezone')
 
 const semesters = _.mapValues(config.semesters, semester => {
   return {
@@ -76,7 +62,7 @@ app.post('/', (request, response) => {
   if (semester) {
     request.body.semester = semester
   }
-  log.debug(request.body)
+  log.info(request.body)
   progress.insertOne(request.body).catch(err => {
     log.fatal(err)
   })
@@ -87,6 +73,9 @@ mongo.connect(process.env.MONGO, { useNewUrlParser: true })
   .then(client => {
     progress = client.db('cs125').collection('progress')
     app.listen(config.port)
+  }).catch(err => {
+    log.fatal(err)
+    process.exit(-1)
   })
 
 // vim: ts=2:sw=2:et:ft=javascript
